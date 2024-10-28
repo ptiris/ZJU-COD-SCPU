@@ -6,7 +6,7 @@ module SCPU (
     input [31:0]Data_in,
     input [31:0]inst_in,
 
-    output MemRw,
+    output MemRW,
     output CPU_MIO,
     output [31:0]Addr_out,
     output [31:0]PC_out,
@@ -43,7 +43,7 @@ module SCPU (
         .MemRW(MemRW),
         .ALU_Control(ALU_Control),
         .JumpSel(JumpSel),
-        .BranchSe(BranchSel),
+        .BranchSel(BranchSel),
         .CPU_MIO(CPU_MIO)
     );
 
@@ -51,6 +51,7 @@ module SCPU (
         .clk(clk),
         .rst(rst),
         .MIO_ready(MIO_ready),
+        .inst_in(inst_in),
         .ImmSel(ImmSel),
         .ALUSrc_B(ALUSrc_B),
         .MemtoReg(MemtoReg),

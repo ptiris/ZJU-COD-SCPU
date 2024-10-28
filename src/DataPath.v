@@ -14,6 +14,7 @@ module DataPath(
     input [3:0]      ALU_Control,
     input            CPU_MIO,
     input [31:0]     Data_in,
+    input [31:0]     inst_in,
     input [31:0]     PC,
 
     output [31:0]    ALU_out,
@@ -50,7 +51,11 @@ module DataPath(
     */
     assign PC_4 = PC + 4;
     assign PC_BJ = (JumpSel == 1'b1)?Rs1_data:PC + Imm_out;
-    assign PC_out = (((zero ^ BranchSel) && Branch) || Jump )?PC_BJ:PC_4;
+
+    always @(*) begin
+        if(((zero ^ BranchSel) && Branch) || Jump )PC_out = PC_BJ;
+        else PC_out = PC_4;
+    end
 
     assign Rd_data = (MemtoReg == 2'b00)?(Data_in):
                      (MemtoReg == 2'b01)?(ALU_out):
