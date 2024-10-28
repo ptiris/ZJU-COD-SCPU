@@ -15,12 +15,20 @@ module DataPath(
     input            CPU_MIO,
     input [31:0]     Data_in,
     input [31:0]     inst_in,
-    input [31:0]     PC,
 
     output [31:0]    ALU_out,
     output [31:0]    Data_out,
     output reg [31:0]    PC_out
 );
+
+    
+    reg [31:0]PC_next;
+    always @(negedge clk or posedge rst) begin
+        if(rst)PC_out <= 0;
+        else begin
+            PC_out <= PC_next;
+        end
+    end
 
     wire [31:0]Imm_out;
     ImmGen  ImmGen_inst (
@@ -49,12 +57,12 @@ module DataPath(
         P1 = R1_data or PC
         P2 = imm
     */
-    assign PC_4 = PC + 4;
-    assign PC_BJ = (JumpSel == 1'b1)?Rs1_data:PC + Imm_out;
+    assign PC_4 = PC_out + 4;
+    assign PC_BJ = (JumpSel == 1'b1)?Rs1_data:PC_out + Imm_out;
 
     always @(*) begin
-        if(((zero ^ BranchSel) && Branch) || Jump )PC_out = PC_BJ;
-        else PC_out = PC_4;
+        if(((zero ^ BranchSel) && Branch) || Jump )PC_next = PC_BJ;
+        else PC_next = PC_4;
     end
 
     assign Rd_data = (MemtoReg == 2'b00)?(Data_in):

@@ -12,17 +12,7 @@ module SCPU (
     output [31:0]PC_out,
     output [31:0]Data_out
 );
-    reg [31:0]PC;
-    initial begin
-        PC <= 0;
-    end
-
-    always @(negedge clk or posedge rst) begin
-        if(rst)PC <= 0;
-        else begin
-            PC <= PC_out;
-        end
-    end
+    
 
     wire MIO_ready,ALUSrc_B,Jump,Branch,RegWrite,MemRW,JumpSel,BranchSel;
     wire[2:0]    ImmSel;
