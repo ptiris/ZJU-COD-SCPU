@@ -23,7 +23,7 @@ module DataPath(
 
     
     reg [31:0]PC_next;
-    always @(negedge clk or posedge rst) begin
+    always @(posedge clk or posedge rst) begin
         if(rst)PC_out <= 0;
         else begin
             PC_out <= PC_next;
