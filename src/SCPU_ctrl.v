@@ -1,7 +1,5 @@
-module SCPU_ctrl(
-  input [4:0]       OPcode, 
-  input [2:0]       Fun3,
-  input             Fun7,                                 //Func7[1]
+module SCPU_ctrl(      
+  input      [31:0] inst_in_ctrl,                    //Func7[1]
   input             MIO_ready,
   output reg [2:0]  ImmSel,
   output reg        ALUSrc_B,
@@ -16,6 +14,13 @@ module SCPU_ctrl(
   output reg        CPU_MIO
 );
 
+
+    wire [4:0]OPcode;
+    wire [2:0]Fun3;
+    wire Fun7;
+    assign OPcode = inst_in_ctrl[6:2];
+    assign Fun3 = inst_in_ctrl[14:12];
+    assign Fun7 = inst_in_ctrl[30];
 
     parameter I_type_1 = 5'b00100;    //addi xori ori andi slli srli srai slti sltui
     parameter I_type_2 = 5'b00000;    //lb lh lw lbu lhu
@@ -53,6 +58,7 @@ module SCPU_ctrl(
       I_type_1: ALUSrc_B = 1'b1;
       I_type_2: ALUSrc_B = 1'b1;
       I_type_3: ALUSrc_B = 1'b1;
+      S_type:   ALUSrc_B = 1'b1;
       default:  ALUSrc_B = 1'b0;
     endcase
   end
@@ -87,10 +93,10 @@ module SCPU_ctrl(
     else JumpSel = 1'b0;
   end
 
-  reg ALU_op;
+  reg [1:0]ALU_op;
   always @(*) begin
     case (OPcode)
-      I_type_1:ALU_op = 2'b10;    //Arithmetic Mode according to fun3 and fun7
+      I_type_1:ALU_op = 2'b11;    //Arithmetic Mode according to fun3 and fun7
       I_type_2:ALU_op = 2'b00;    //Load => add 
       I_type_3:ALU_op = 2'b00;    //rs1 + imm => add 
 
@@ -105,7 +111,7 @@ module SCPU_ctrl(
     case (ALU_op)
       2'b00:ALU_Control = 4'b0000;
       2'b01:begin
-        if(Fun3 === 3'b000 || Fun3 === 3'b001)ALU_Control = 4'b0000;
+        if(Fun3 === 3'b000 || Fun3 === 3'b001)ALU_Control = 4'b0001;
         else if(Fun3 === 3'b100 || Fun3 === 3'b101)ALU_Control = 4'b0011;
         else ALU_Control = 4'b0100;
       end
@@ -124,7 +130,22 @@ module SCPU_ctrl(
           default: ALU_Control = 4'b0000;
         endcase
       end 
-      default: ALU_Control = 4'b0000;
+      2'b11:begin
+        case (Fun3)
+          3'b000: ALU_Control = 4'b0000;
+          3'b100: ALU_Control = 4'b0101;
+          3'b110: ALU_Control = 4'b1000;
+          3'b111: ALU_Control = 4'b1001;
+          3'b001: ALU_Control = 4'b0010;
+          3'b101: begin
+            if(Fun7)ALU_Control = 4'b0111;
+            else ALU_Control = 4'b0110;
+          end
+          3'b010: ALU_Control = 4'b0011;
+          3'b001: ALU_Control = 4'b0100;
+          default: ALU_Control = 4'b0000;
+        endcase
+      end
     endcase
   end
 

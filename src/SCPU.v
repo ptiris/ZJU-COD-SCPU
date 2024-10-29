@@ -18,11 +18,8 @@ module SCPU (
     wire[2:0]    ImmSel;
     wire[1:0]    MemtoReg;
     wire[3:0]    ALU_Control;
-
     SCPU_ctrl  SCPU_ctrl_U0 (
-        .OPcode(inst_in[6:2]),
-        .Fun3(inst_in[14:12]),
-        .Fun7(inst_in[26]),
+        .inst_in_ctrl(inst_in),
         .MIO_ready(MIO_ready),
         .ImmSel(ImmSel),
         .ALUSrc_B(ALUSrc_B),
