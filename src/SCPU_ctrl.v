@@ -1,6 +1,7 @@
 module SCPU_ctrl(      
   input      [31:0] inst_in_ctrl,                    //Func7[1]
   input             MIO_ready,
+  input      [3:0]  Save_base,
   output reg [2:0]  ImmSel,
   output reg        ALUSrc_B,
   output reg [1:0]  MemtoReg,
@@ -8,10 +9,12 @@ module SCPU_ctrl(
   output reg        Branch,
   output reg        BranchSel,
   output reg        RegWrite,
-  output reg        MemRW,
+  output reg [3:0]  MemRW,
   output reg [3:0]  ALU_Control,
   output reg        JumpSel,
-  output reg        CPU_MIO
+  output reg        CPU_MIO,
+  output reg [2:0]  Mem_dataSel,
+  output reg        PC_RDSel
 );
 
 
@@ -62,13 +65,7 @@ module SCPU_ctrl(
       default:  ALUSrc_B = 1'b0;
     endcase
   end
-  /*
-    MemtoReg = 0,1,2,3
-    0 for mem_output to rd
-    1 for ALU_out to rd
-    2 for Imm_out to rd
-    3 for PC+4 to rd
-  */
+
   always @(*) begin
     case (OPcode)
       R_type:MemtoReg =  2'b01;
@@ -82,14 +79,13 @@ module SCPU_ctrl(
   end
 
   always @(*) begin
-    if((OPcode === J_type)||(OPcode === I_type_3)
-       ||(OPcode === U_type_2) )
+    if((OPcode == J_type)||(OPcode == I_type_3))
       Jump = 1'b1;
     else Jump = 1'b0;
   end
 
   always @(*) begin
-    if(OPcode === I_type_3)JumpSel = 1'b1; //Pc = ___ + imm, 1 for rs1 , 0 for PC 
+    if(OPcode == I_type_3)JumpSel = 1'b1; //Pc = ___ + imm, 1 for rs1 , 0 for PC 
     else JumpSel = 1'b0;
   end
 
@@ -111,8 +107,8 @@ module SCPU_ctrl(
     case (ALU_op)
       2'b00:ALU_Control = 4'b0000;
       2'b01:begin
-        if(Fun3 === 3'b000 || Fun3 === 3'b001)ALU_Control = 4'b0001;
-        else if(Fun3 === 3'b100 || Fun3 === 3'b101)ALU_Control = 4'b0011;
+        if(Fun3 == 3'b000 || Fun3 == 3'b001)ALU_Control = 4'b0001;
+        else if(Fun3 == 3'b100 || Fun3 == 3'b101)ALU_Control = 4'b0011;
         else ALU_Control = 4'b0100;
       end
       2'b10:begin
@@ -143,6 +139,7 @@ module SCPU_ctrl(
           end
           3'b010: ALU_Control = 4'b0011;
           3'b001: ALU_Control = 4'b0100;
+          3'b011: ALU_Control = 4'b0100;
           default: ALU_Control = 4'b0000;
         endcase
       end
@@ -150,36 +147,55 @@ module SCPU_ctrl(
   end
 
   always @(*) begin
-    if(OPcode === B_type)Branch = 1'b1;
+    if(OPcode == B_type)Branch = 1'b1;
     else Branch = 1'b0;
   end
 
   always @(*) begin
-    if(Fun3 === 3'b001 || Fun3 === 3'b101 || Fun3 === 3'b111)BranchSel = 1'b1;
+    if(Fun3 == 3'b001 || Fun3 == 3'b100 || Fun3 == 3'b110)BranchSel = 1'b1;
     else BranchSel = 1'b0;
   end
 
   always @(*) begin
-    if((OPcode === R_type)||(OPcode === I_type_1)||(OPcode === I_type_2)||(OPcode === J_type)
-    ||(OPcode === I_type_3)||(OPcode === U_type_1))
+    if((OPcode == R_type)||(OPcode == I_type_1)||(OPcode == I_type_2)||(OPcode == J_type)
+    ||(OPcode == I_type_3)||(OPcode == U_type_1)||(OPcode == U_type_2))
       RegWrite = 1'b1;
     else RegWrite = 1'b0;
   end
 
   always @(*) begin
-    if (OPcode === S_type) begin
-      MemRW = 1'b1;
-    end else begin
-      MemRW = 1'b0;
+    if(OPcode == I_type_2)begin
+      Mem_dataSel = Fun3;
+    end
+    else begin
+      Mem_dataSel = 3'b110;
     end
   end
 
   always @(*) begin
-    if ((OPcode === S_type)||(OPcode === I_type_2)) begin
+    if (OPcode == S_type) begin
+      case (Fun3)
+        3'b000:MemRW = Save_base;
+        3'b001:MemRW = Save_base | (Save_base << 1);
+        3'b010:MemRW = 4'b1111; 
+        default: MemRW = 4'b1111;
+      endcase
+    end else begin
+      MemRW = 4'b0000;
+    end
+  end
+
+  always @(*) begin
+    if ((OPcode == S_type)||(OPcode == I_type_2)) begin
       CPU_MIO = 1'b1;
     end else begin
       CPU_MIO = 1'b0;
     end
+  end
+
+  always @(*) begin
+    if(OPcode == U_type_2)PC_RDSel = 1'b1;
+    else PC_RDSel = 1'b0;
   end
 
 endmodule

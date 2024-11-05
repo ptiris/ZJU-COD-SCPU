@@ -6,7 +6,7 @@ module SCPU (
     input [31:0]Data_in,
     input [31:0]inst_in,
 
-    output MemRW,
+    output [3:0]MemRW,
     output CPU_MIO,
     output [31:0]Addr_out,
     output [31:0]PC_out,
@@ -14,10 +14,12 @@ module SCPU (
 );
     
 
-    wire MIO_ready,ALUSrc_B,Jump,Branch,RegWrite,MemRW,JumpSel,BranchSel;
+    wire MIO_ready,ALUSrc_B,Jump,Branch,RegWrite,JumpSel,BranchSel,PC_RDSel;
+    wire[3:0]    MemRw,Save_base;
     wire[2:0]    ImmSel;
     wire[1:0]    MemtoReg;
     wire[3:0]    ALU_Control;
+    wire[2:0]    Mem_dataSel;
     SCPU_ctrl  SCPU_ctrl_U0 (
         .inst_in_ctrl(inst_in),
         .MIO_ready(MIO_ready),
@@ -31,7 +33,10 @@ module SCPU (
         .ALU_Control(ALU_Control),
         .JumpSel(JumpSel),
         .BranchSel(BranchSel),
-        .CPU_MIO(CPU_MIO)
+        .CPU_MIO(CPU_MIO),
+        .Mem_dataSel(Mem_dataSel),
+        .PC_RDSel(PC_RDSel),
+        .Save_base(Save_base)
     );
 
     DataPath DataPath_U1(
@@ -53,7 +58,10 @@ module SCPU (
         .BranchSel(BranchSel),
         .ALU_out(Addr_out),
         .Data_out(Data_out),
-        .PC_out(PC_out)
+        .PC_out(PC_out),
+        .Mem_dataSel(Mem_dataSel),
+        .PC_RDSel(PC_RDSel),
+        .Save_base(Save_base)
     );
 
 endmodule
