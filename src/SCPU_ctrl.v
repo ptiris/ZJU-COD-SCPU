@@ -2,6 +2,8 @@ module SCPU_ctrl(
   input      [31:0] inst_in_ctrl,                    //Func7[1]
   input             MIO_ready,
   input      [3:0]  Save_base,
+  input             IO_break,
+
   output reg [2:0]  ImmSel,
   output reg        ALUSrc_B,
   output reg [1:0]  MemtoReg,
@@ -14,7 +16,10 @@ module SCPU_ctrl(
   output reg        JumpSel,
   output reg        CPU_MIO,
   output reg [2:0]  Mem_dataSel,
-  output reg        PC_RDSel
+  output reg        PC_RDSel,
+  output reg        ecall,
+  output reg        ill_inst,
+  output wire       expt_int
 );
 
 
@@ -197,5 +202,21 @@ module SCPU_ctrl(
     if(OPcode == U_type_2)PC_RDSel = 1'b1;
     else PC_RDSel = 1'b0;
   end
+
+  always @(*) begin
+    if(OPcode == I_type_4)
+      if(Fun7 == 0) ecall = 1'b1;
+      else ill_inst = 1'b1;
+    else ecall = 1'b0;
+  end
+
+  always @(*) begin
+    if(OPcode == I_type_1 || OPcode == I_type_2 || OPcode == I_type_3 || OPcode == I_type_4 || 
+       OPcode == R_type   || OPcode == S_type   || OPcode == B_type   || OPcode == U_type_1 ||
+       OPcode == U_type_2 || OPcode == J_type) ill_inst = 1'b0;
+    else ill_inst = 1'b1;
+  end
+
+  assign expt_int = ill_inst | IO_break | ecall;
 
 endmodule
