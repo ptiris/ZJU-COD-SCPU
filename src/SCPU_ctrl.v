@@ -6,7 +6,7 @@ module SCPU_ctrl(
 
   output reg [2:0]  ImmSel,
   output reg        ALUSrc_B,
-  output reg [1:0]  MemtoReg,
+  output reg [2:0]  MemtoReg,
   output reg        Jump,
   output reg        Branch,
   output reg        BranchSel,
@@ -19,7 +19,10 @@ module SCPU_ctrl(
   output reg        PC_RDSel,
   output reg        ecall,
   output reg        ill_inst,
-  output wire       expt_int
+  output wire       expt_int,
+  output reg        Csr_w,
+  output reg [1:0]  Csr_opctrl,
+  output reg        Csr_immsel
 );
 
 
@@ -42,6 +45,8 @@ module SCPU_ctrl(
     parameter B_type = 5'b11000;      //beq bne blt bge bltu bgeu
     parameter J_type = 5'b11011;      //jal 
     parameter S_type = 5'b01000;      //sb sh sw
+
+    parameter CSR_type = 5'b11100;
 
 
    /*0 为 I-Type，1 为 S-Type，2 为 B-Type，3 为 J-Type ,4 为 U-Type*/
@@ -73,13 +78,14 @@ module SCPU_ctrl(
 
   always @(*) begin
     case (OPcode)
-      R_type:MemtoReg =  2'b01;
-      I_type_1:MemtoReg =  2'b01;
-      I_type_2:MemtoReg =  2'b00;
-      I_type_3:MemtoReg = 2'b11;
-      J_type:MemtoReg =  2'b11;
-      U_type_1:MemtoReg = 2'b10;
-      default: MemtoReg =  2'b11;
+      R_type:MemtoReg =  3'b001;
+      I_type_1:MemtoReg =  3'b001;
+      I_type_2:MemtoReg =  3'b000;
+      I_type_3:MemtoReg = 3'b011;
+      J_type:MemtoReg =  3'b011;
+      U_type_1:MemtoReg = 3'b010;
+      CSR_type:MemtoReg = 3'b100;
+      default: MemtoReg =  3'b011;
     endcase
   end
 
@@ -163,7 +169,7 @@ module SCPU_ctrl(
 
   always @(*) begin
     if((OPcode == R_type)||(OPcode == I_type_1)||(OPcode == I_type_2)||(OPcode == J_type)
-    ||(OPcode == I_type_3)||(OPcode == U_type_1)||(OPcode == U_type_2))
+    ||(OPcode == I_type_3)||(OPcode == U_type_1)||(OPcode == U_type_2)||(OPcode == CSR_type))
       RegWrite = 1'b1;
     else RegWrite = 1'b0;
   end
@@ -204,19 +210,31 @@ module SCPU_ctrl(
   end
 
   always @(*) begin
-    if(OPcode == I_type_4)
-      if(Fun7 == 0) ecall = 1'b1;
-      else ill_inst = 1'b1;
+    if(OPcode == I_type_4 && Fun7 == 0)ecall = 1'b1;
     else ecall = 1'b0;
   end
 
   always @(*) begin
     if(OPcode == I_type_1 || OPcode == I_type_2 || OPcode == I_type_3 || OPcode == I_type_4 || 
        OPcode == R_type   || OPcode == S_type   || OPcode == B_type   || OPcode == U_type_1 ||
-       OPcode == U_type_2 || OPcode == J_type) ill_inst = 1'b0;
+       OPcode == U_type_2 || OPcode == J_type   || OPcode == CSR_type) ill_inst = 1'b0;
     else ill_inst = 1'b1;
   end
 
   assign expt_int = ill_inst | IO_break | ecall;
 
+  always @(*) begin
+    if(OPcode == CSR_type)begin
+      case (Fun3)
+        3'b001:begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b1;                  end
+        3'b010:begin Csr_opctrl = 2'b01;Csr_immsel = 1'b0; Csr_w = |inst_in_ctrl[19:15];  end
+        3'b011:begin Csr_opctrl = 2'b10;Csr_immsel = 1'b0; Csr_w = |inst_in_ctrl[19:15];  end
+        3'b101:begin Csr_opctrl = 2'b00;Csr_immsel = 1'b1; Csr_w = 1'b1;                  end
+        3'b110:begin Csr_opctrl = 2'b00;Csr_immsel = 1'b1; Csr_w = |inst_in_ctrl[19:15];  end
+        3'b111:begin Csr_opctrl = 2'b10;Csr_immsel = 1'b1; Csr_w = |inst_in_ctrl[19:15];  end
+        default: begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b0;                end
+      endcase
+    end
+  end
 endmodule
+

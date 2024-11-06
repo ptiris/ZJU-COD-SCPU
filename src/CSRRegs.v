@@ -34,8 +34,8 @@ module CSRRegs(
                 res['h300] <= mstatus_bypass_in;
             end
             if(waddr && csr_w)
-                res[waddr]<=wdata;
-            else res[waddr]<=res[waddr];
+                res[waddr] <= wdata;
+            else res[waddr] <= res[waddr];
         end
 
 

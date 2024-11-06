@@ -17,6 +17,9 @@ module DataPath(
     input [31:0]     inst_in,
     input [2:0]      Mem_dataSel,
     input            PC_RDSel,
+    input            csr_w,
+    input [1:0]      csr_opctrl,
+    input            csr_immsel,
 
     output [31:0]    ALU_out,
     output [31:0]    Data_out,
@@ -74,15 +77,39 @@ module DataPath(
     assign PC_RD = (PC_RDSel)?PC_out + Imm_out:PC_4;
 
 
+    //CSR Regs
+    wire [11:0]     csr_raddr,csr_waddr;
+    wire            csr_w;
+    wire [31:0]     csr_rdata,csr_wdata,csr_imm,csr_opnum;
+    wire [2:0]      csr_wsc_mode;
+
+    assign csr_waddr = inst_in[31:20];
+    assign csr_raddr = inst_in[31:20];
+    assign csr_imm = {{27{1'b0}},inst_in[19:15]};
+    assign csr_opnum = (csr_immsel)?csr_imm:Rs1_data;
+    assign csr_wdata = (csr_opctrl == 2'b00)?csr_opnum:
+                       (csr_opctrl == 2'b01)?csr_opnum|csr_rdata:(~csr_opnum)&csr_rdata;
+    CSRRegs CSR_U5(
+        .clk(clk),
+        .rst(rst),
+        .raddr(csr_raddr),
+        .waddr(csr_waddr),
+        .csr_w(csr_w),
+        .csr_wsc_mode(csr_wsc_mode),
+        .rdata(csr_rdata),
+        .wdata(csr_wdata)
+    );
+
     wire zero;  
     always @(*) begin
         if(((zero ^ BranchSel) && Branch) || Jump )PC_next = PC_BJ;
         else PC_next = PC_4;
     end
 
-    assign Rd_data = (MemtoReg == 2'b00)?(Data_in_field):
-                     (MemtoReg == 2'b01)?(ALU_out):
-                     (MemtoReg == 2'b10)?(Imm_out):PC_RD;
+    assign Rd_data = (MemtoReg == 3'b000)?(Data_in_field):
+                     (MemtoReg == 3'b001)?(ALU_out):
+                     (MemtoReg == 3'b010)?(Imm_out):
+                     (MemtoReg == 3'b011)?PC_RD:(csr_rdata);
                      
     assign ALU_B = (ALUSrc_B == 1'b0)?Rs2_data:Imm_out;
     assign Data_out = Rs2_data << Data_bias;

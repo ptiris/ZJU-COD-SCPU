@@ -16,7 +16,7 @@ module SCPU (
     
 
     wire MIO_ready,ALUSrc_B,Jump,Branch,RegWrite,JumpSel,BranchSel,PC_RDSel;
-    wire ecall,ill_inst,expt_int;
+    wire ecall,ill_inst,expt_int,csr_w,csr_opctrl,csr_immsel;
     wire[3:0]    MemRw,Save_base;
     wire[2:0]    ImmSel;
     wire[1:0]    MemtoReg;
@@ -42,7 +42,10 @@ module SCPU (
         .IO_break(IO_break),
         .ill_inst(ill_inst),
         .expt_int(expt_int),
-        .ecall(ecall)
+        .ecall(ecall),
+        .Csr_w(csr_w),
+        .Csr_opctrl(csr_opctrl),
+        .Csr_immsel(csr_immsel)
     );
 
     DataPath DataPath_U1(
@@ -67,7 +70,10 @@ module SCPU (
         .PC_out(PC_out),
         .Mem_dataSel(Mem_dataSel),
         .PC_RDSel(PC_RDSel),
-        .Save_base(Save_base)
+        .Save_base(Save_base),
+        .csr_w(csr_w),
+        .csr_opctrl(csr_opctrl),
+        .csr_immsel(csr_immsel)
     );
 
 endmodule
