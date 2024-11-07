@@ -27,11 +27,11 @@ module CSRRegs(
         end
         else begin
             if(expt_int)begin
-                res['h341] <= mepc_bypasss_in;
-                res['h342] <= mscause_bypass_in;
-                res['h343] <= mtval_bypass_in;
-                res['h305] <= mtvec_bypass_in;
-                res['h300] <= mstatus_bypass_in;
+                res[12'h341] <= mepc_bypasss_in;
+                res[12'h342] <= mscause_bypass_in;
+                res[12'h343] <= mtval_bypass_in;
+                res[12'h305] <= mtvec_bypass_in;
+                res[12'h300] <= mstatus_bypass_in;
             end
             if(waddr && csr_w)
                 res[waddr] <= wdata;
@@ -42,9 +42,9 @@ module CSRRegs(
     end
 
     assign rdata = res[raddr];
-    assign  mepc_bypasss_out = res['h341];
-    assign  mscause_bypass_out = res['h342];
-    assign  mtval_bypass_out = res['h343];
-    assign  mtvec_bypass_out = res['h305];
-    assign  mstatus_bypass_out = res['h300];
+    assign  mepc_bypasss_out   =  res[12'h341];
+    assign  mscause_bypass_out =  res[12'h342];
+    assign  mtval_bypass_out   =  res[12'h343];
+    assign  mtvec_bypass_out   =  res[12'h305];
+    assign  mstatus_bypass_out =  res[12'h300];
 endmodule
