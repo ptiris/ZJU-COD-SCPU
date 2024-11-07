@@ -22,7 +22,8 @@ module SCPU_ctrl(
   output wire       expt_int,
   output reg        Csr_w,
   output reg [1:0]  Csr_opctrl,
-  output reg        Csr_immsel
+  output reg        Csr_immsel,
+  output reg        mret
 );
 
 
@@ -226,6 +227,7 @@ module SCPU_ctrl(
   always @(*) begin
     if(OPcode == CSR_type)begin
       case (Fun3)
+        3'b000:begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b0; mret = 1'b1;     end
         3'b001:begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b1;                  end
         3'b010:begin Csr_opctrl = 2'b01;Csr_immsel = 1'b0; Csr_w = |inst_in_ctrl[19:15];  end
         3'b011:begin Csr_opctrl = 2'b10;Csr_immsel = 1'b0; Csr_w = |inst_in_ctrl[19:15];  end
@@ -235,6 +237,7 @@ module SCPU_ctrl(
         default: begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b0;                end
       endcase
     end
+    else begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b0; mret = 1'b0; end
   end
 endmodule
 
