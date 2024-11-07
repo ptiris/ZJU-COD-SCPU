@@ -32,7 +32,6 @@ module DataPath(
     output reg [31:0]    PC_out
 );
 
-    
     reg [31:0]PC_next;
     always @(posedge clk or posedge rst) begin
         if(rst)PC_out <= 0;
@@ -80,7 +79,6 @@ module DataPath(
     assign PC_4 = PC_out + 4;
     assign PC_BJ = (JumpSel == 1'b1)?Rs1_data + Imm_out:PC_out + Imm_out;
     assign PC_RD = (PC_RDSel)?PC_out + Imm_out:PC_4;
-
 
     //CSR Regs
     parameter trap_base = 31'h0000fffc;
@@ -149,8 +147,6 @@ module DataPath(
     assign ALU_B = (ALUSrc_B == 1'b0)?Rs2_data:Imm_out;
     assign Data_out = Rs2_data << Data_bias;
     assign Save_base = 1'b1 << (ALU_out[1:0]);
-
-
 
     ALU  ALU_U3 (
         .A(Rs1_data),

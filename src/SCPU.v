@@ -14,7 +14,6 @@ module SCPU (
     output [31:0]Data_out
 );
     
-
     wire MIO_ready,ALUSrc_B,Jump,Branch,RegWrite,JumpSel,BranchSel,PC_RDSel;
     wire ecall,ill_inst,expt_int,csr_w,csr_opctrl,csr_immsel,mret;
     wire[3:0]    MemRw,Save_base;
