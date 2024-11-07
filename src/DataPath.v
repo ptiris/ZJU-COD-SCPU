@@ -20,6 +20,10 @@ module DataPath(
     input            csr_w,
     input [1:0]      csr_opctrl,
     input            csr_immsel,
+    input            ecall,
+    input            ill_inst,
+    input            expt_int,
+    input            IO_break,
 
     output [31:0]    ALU_out,
     output [31:0]    Data_out,
@@ -78,17 +82,20 @@ module DataPath(
 
 
     //CSR Regs
+    parameter trap_base = 31'h0000fffc;
     wire [11:0]     csr_raddr,csr_waddr;
     wire            csr_w;
     wire [31:0]     csr_rdata,csr_wdata,csr_imm,csr_opnum;
-    wire [2:0]      csr_wsc_mode;
-
+    
     assign csr_waddr = inst_in[31:20];
     assign csr_raddr = inst_in[31:20];
     assign csr_imm = {{27{1'b0}},inst_in[19:15]};
     assign csr_opnum = (csr_immsel)?csr_imm:Rs1_data;
     assign csr_wdata = (csr_opctrl == 2'b00)?csr_opnum:
-                       (csr_opctrl == 2'b01)?csr_opnum|csr_rdata:(~csr_opnum)&csr_rdata;
+    (csr_opctrl == 2'b01)?csr_opnum|csr_rdata:(~csr_opnum)&csr_rdata;
+    
+    reg [31:0]mepc_bypasss_in,mscause_bypass_in,mtval_bypass_in,mtvec_bypass_in,mstatus_bypass_in;
+    reg [31:0]mepc_bypasss_out,mscause_bypass_out,mtval_bypass_out,mtvec_bypass_out,mstatus_bypass_out;
     CSRRegs CSR_U5(
         .clk(clk),
         .rst(rst),
@@ -97,12 +104,38 @@ module DataPath(
         .csr_w(csr_w),
         .csr_wsc_mode(csr_wsc_mode),
         .rdata(csr_rdata),
-        .wdata(csr_wdata)
-    );
+        .wdata(csr_wdata),
+        .expt_int(expt_int),
+        .mepc_bypasss_in(mepc_bypasss_in),
+        .mscause_bypass_in(mscause_bypass_in),
+        .mtval_bypass_in(mtval_bypass_in),
+        .mtvec_bypass_in(mtvec_bypass_in),
+        .mstatus_bypass_in(mstatus_bypass_in),
+        
+        .mepc_bypasss_out(mepc_bypasss_out),
+        .mscause_bypass_out(mscause_bypass_out),
+        .mtval_bypass_out(mtval_bypass_out),
+        .mtvec_bypass_out(mtvec_bypass_out),
+        .mstatus_bypass_out(mstatus_bypass_out)
+        );
+    reg [2:0]csr_wsc_mode;
+    always @(*) begin
+        if(mstatus_bypass_out[3] && expt_int)begin
+            csr_wsc_mode = 2'b01;
+            mstatus_bypass_in = {mstatus_bypass_out[31:4],1'b0,mscause_bypass_out[2:0]};    //set trap enable
+            mscause_bypass_in = {ecall|IO_break,28'b0,IO_break,ecall,ill_inst};             //set cause for trap
+            mepc_bypasss_in   = PC_out;
+            mtval_bypass_in   = inst_in;
+        end
+        else begin
+            csr_wsc_mode = 2'b00;
+        end
+    end
 
     wire zero;  
     always @(*) begin
-        if(((zero ^ BranchSel) && Branch) || Jump )PC_next = PC_BJ;
+        if(csr_wsc_mode == 2'b01)PC_next = mtvec_bypass_out[31:2]<<1;
+        else if(((zero ^ BranchSel) && Branch) || Jump )PC_next = PC_BJ;
         else PC_next = PC_4;
     end
 

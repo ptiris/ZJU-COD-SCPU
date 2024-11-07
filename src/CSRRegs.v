@@ -26,14 +26,14 @@ module CSRRegs(
                 res[i]<=0;
         end
         else begin
-            if(expt_int)begin
+            if(expt_int && (csr_wsc_mode == 2'b01))begin
                 res[12'h341] <= mepc_bypasss_in;
                 res[12'h342] <= mscause_bypass_in;
                 res[12'h343] <= mtval_bypass_in;
                 res[12'h305] <= mtvec_bypass_in;
                 res[12'h300] <= mstatus_bypass_in;
             end
-            if(waddr && csr_w)
+            else if(waddr && csr_w)
                 res[waddr] <= wdata;
             else res[waddr] <= res[waddr];
         end

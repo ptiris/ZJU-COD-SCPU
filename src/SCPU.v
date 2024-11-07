@@ -72,6 +72,7 @@ module SCPU (
         .PC_RDSel(PC_RDSel),
         .Save_base(Save_base),
         .csr_w(csr_w),
+        .IO_break(IO_break),
         .csr_opctrl(csr_opctrl),
         .csr_immsel(csr_immsel)
     );
