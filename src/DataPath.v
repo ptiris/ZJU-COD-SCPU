@@ -134,7 +134,7 @@ module DataPath(
     wire zero;  
     always @(*) begin
         if(csr_wsc_mode == 2'b01)PC_next = mtvec_bypass_out[31:2]<<1;
-        if(mret == 1'b1) PC_next = mepc_bypasss_out[31:0];
+        else if(mret == 1'b1) PC_next = mepc_bypasss_out[31:0];
         else if(((zero ^ BranchSel) && Branch) || Jump )PC_next = PC_BJ;
         else PC_next = PC_4;
     end
