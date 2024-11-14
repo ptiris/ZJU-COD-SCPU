@@ -37,8 +37,6 @@ module CSRRegs(
                 res[waddr] <= wdata;
             else res[waddr] <= res[waddr];
         end
-
-
     end
 
     assign rdata = res[raddr];
