@@ -4,7 +4,7 @@ module DataPath(
     input            MIO_ready,
     input [2:0]      ImmSel,
     input            ALUSrc_B,
-    input [1:0]      MemtoReg,
+    input [2:0]      MemtoReg,
     input            Jump,
     input            JumpSel,
     input            Branch,
@@ -94,7 +94,7 @@ module DataPath(
     (csr_opctrl == 2'b01)?csr_opnum|csr_rdata:(~csr_opnum)&csr_rdata;
     
     reg [31:0]mepc_bypasss_in,mscause_bypass_in,mtval_bypass_in,mtvec_bypass_in,mstatus_bypass_in;
-    reg [31:0]mepc_bypasss_out,mscause_bypass_out,mtval_bypass_out,mtvec_bypass_out,mstatus_bypass_out;
+    wire [31:0]mepc_bypasss_out,mscause_bypass_out,mtval_bypass_out,mtvec_bypass_out,mstatus_bypass_out;
     CSRRegs CSR_U5(
         .clk(clk),
         .rst(rst),
@@ -117,7 +117,7 @@ module DataPath(
         .mtvec_bypass_out(mtvec_bypass_out),
         .mstatus_bypass_out(mstatus_bypass_out)
         );
-    reg [2:0]csr_wsc_mode;
+    reg [1:0]csr_wsc_mode;
     always @(*) begin
         if(mstatus_bypass_out[3] && expt_int)begin
             csr_wsc_mode = 2'b01;
@@ -125,7 +125,7 @@ module DataPath(
             mscause_bypass_in = {ecall|IO_break,28'b0,IO_break,ecall,ill_inst};             //set cause for trap
             mepc_bypasss_in   = PC_out;
             mtval_bypass_in   = inst_in;
-        end
+        end 
         else begin
             csr_wsc_mode = 2'b00;
         end

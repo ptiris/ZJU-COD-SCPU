@@ -232,7 +232,7 @@ module SCPU_ctrl(
         3'b010 :begin Csr_opctrl = 2'b01;Csr_immsel = 1'b0; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
         3'b011 :begin Csr_opctrl = 2'b10;Csr_immsel = 1'b0; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
         3'b101 :begin Csr_opctrl = 2'b00;Csr_immsel = 1'b1; Csr_w = 1'b1;                 mret = 1'b0;      end
-        3'b110 :begin Csr_opctrl = 2'b01;Csr_immsel = 1'b1; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
+        3'b110 :begin Csr_opctrl = 2'b00;Csr_immsel = 1'b1; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
         3'b111 :begin Csr_opctrl = 2'b10;Csr_immsel = 1'b1; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
         default:begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b0;  mret = 1'b0;                     end
       endcase

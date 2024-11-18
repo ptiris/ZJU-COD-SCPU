@@ -15,10 +15,11 @@ module SCPU (
 );
     
     wire MIO_ready,ALUSrc_B,Jump,Branch,RegWrite,JumpSel,BranchSel,PC_RDSel;
-    wire ecall,ill_inst,expt_int,csr_w,csr_opctrl,csr_immsel,mret;
+    wire ecall,ill_inst,expt_int,csr_w,csr_immsel,mret;
+    wire[1:0]    csr_opctrl;
     wire[3:0]    MemRw,Save_base;
     wire[2:0]    ImmSel;
-    wire[1:0]    MemtoReg;
+    wire[2:0]    MemtoReg;
     wire[3:0]    ALU_Control;
     wire[2:0]    Mem_dataSel;
     SCPU_ctrl  SCPU_ctrl_U0 (

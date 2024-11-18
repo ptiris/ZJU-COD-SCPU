@@ -4,7 +4,6 @@ module CSRRegs(
     input[31:0] wdata,              // 写入 CSR 寄存器的数据
     input csr_w,                    // 写使能
     input[1:0] csr_wsc_mode,        // 写入 CSR 寄存器的模式
-    output[31:0] rdata,             // 读出 CSR 寄存器的数据
     input expt_int,
     input [31:0]mepc_bypasss_in,
     input [31:0]mscause_bypass_in,
@@ -12,6 +11,7 @@ module CSRRegs(
     input [31:0]mtvec_bypass_in,
     input [31:0]mstatus_bypass_in,
     
+    output [31:0] rdata,             // 读出 CSR 寄存器的数据
     output [31:0]mepc_bypasss_out,
     output [31:0]mscause_bypass_out,
     output [31:0]mtval_bypass_out,
@@ -39,10 +39,10 @@ module CSRRegs(
         end
     end
 
-    assign rdata = res[raddr];
-    assign  mepc_bypasss_out   =  res[12'h341];
-    assign  mscause_bypass_out =  res[12'h342];
-    assign  mtval_bypass_out   =  res[12'h343];
-    assign  mtvec_bypass_out   =  res[12'h305];
-    assign  mstatus_bypass_out =  res[12'h300];
+    assign  rdata = res[raddr];
+    assign  mepc_bypasss_out   =  res[833];
+    assign  mscause_bypass_out =  res[834];
+    assign  mtval_bypass_out   =  res[835];
+    assign  mtvec_bypass_out   =  res[773];
+    assign  mstatus_bypass_out =  res[768];
 endmodule
