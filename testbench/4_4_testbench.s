@@ -45,7 +45,7 @@ pass_2:
     csrrsi x5, 834, x0      #x5 = mcause
     auipc x30, 0
     bne x3, x5, dummy       #
-    csrrsi x3, 834, x10     #x3 = mcause, mcause = 0xBEEF
+    csrrsi x3, 834, x10     #x3 = mcause, mcause = 0x2A
     csrrw x4, 834, x0       #x4 = mcause, mcause = 0
     li x7, 42
     auipc x30, 0
