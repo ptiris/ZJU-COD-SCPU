@@ -12,8 +12,10 @@ start:
     li x5, 1
     add x6, x5, x1
     add x7, x6, x6
-    li x4, 0x3FF
+    li x3, 4
+    li x4, 0x44
     csrrw x0, 773, x4
+    csrrw x0, 768,
     ecall
     j dummy
 
