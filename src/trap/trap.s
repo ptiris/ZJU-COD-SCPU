@@ -12,6 +12,8 @@ start:
     li x5, 1
     add x6, x5, x1
     add x7, x6, x6
+    li x4, 0x3FF
+    csrrw x0, 773, x4
     ecall
     j dummy
 
@@ -54,10 +56,10 @@ trap:
                                 # mtvec   =  res[12'h305];
                                 # mstatus =  res[12'h300];
                                 
-    csrrw x5,834,x0             # x5 = mscause
-    csrrw x6,835,x0             # x6 = mtval
-    csrrw x7,833,x0             # x7 = mepc
-    csrrw x10,768,x0            # x10 = mstatus
+    csrrwi x5,834,0             # x5 = mscause
+    csrrwi x6,835,0             # x6 = mtval
+    csrrwi x7,833,0             # x7 = mepc
+    csrrwi x10,768,0            # x10 = mstatus
     
     andi x8, x5, 4              # mscause & 100
     li x9,4
