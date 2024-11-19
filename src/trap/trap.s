@@ -103,8 +103,6 @@ ill_inst_exc:
     li x30,3
     j end_trap
     
-    
-    
 end_trap:
     # 恢复寄存器
     lw x31, 4(x2)               # 恢复 x31 (临时寄存器)
