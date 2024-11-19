@@ -1,1 +1,4 @@
 *.json
+.gitignore
+*.png
+*.pdf
