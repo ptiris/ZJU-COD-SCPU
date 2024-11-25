@@ -10,7 +10,7 @@ module CSRRegs(
     input [31:0]mtval_bypass_in,
     input [31:0]mstatus_bypass_in,
     
-    output reg [31:0]rdata,             // 读出 CSR 寄存器的数据
+    output [31:0]rdata,             // 读出 CSR 寄存器的数据
     output [31:0]mepc_bypasss_out,
     output [31:0]mscause_bypass_out,
     output [31:0]mtval_bypass_out,
@@ -74,16 +74,21 @@ module CSRRegs(
                     mtvec_addr:    res[4] <= wdata;
                 endcase
             end
-            case (raddr)
-                mepc_addr:     rdata <= res[0];
-                mscause_addr:  rdata <= res[1];
-                mtval_addr:    rdata <= res[2];
-                mstatus_addr:  rdata <= res[3];
-                mtvec_addr:    rdata <= res[4]; 
-                default:       rdata <= 0;
-            endcase
         end
     end
+
+    reg [3:0]raddr_func;
+    always @(*) begin
+        case (raddr)
+            mepc_addr:     raddr_func = 0;
+            mscause_addr:  raddr_func = 1;
+            mtval_addr:    raddr_func = 2;
+            mstatus_addr:  raddr_func = 3;
+            mtvec_addr:    raddr_func = 4;
+            default: raddr_func <= 0;
+        endcase
+    end
+    assign rdata = res[raddr_func];
 
     assign  mepc_bypasss_out   =  res[0];
     assign  mscause_bypass_out =  res[1];
