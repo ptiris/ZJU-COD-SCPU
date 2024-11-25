@@ -88,6 +88,12 @@
   h(3em)
   it
 }
+#show outline.entry.where(
+  level: 4
+):it=>{
+  h(4em)
+  it
+}
 
 #set heading(
   numbering: "1.1.1",
@@ -112,6 +118,8 @@
   #set text(13pt,weight: 600, font: ("New Computer Modern","Source Han Serif SC"))
   #block(it.body)
 ]
+
+
 
 #set text(
    font: ("New Computer Modern","Source Han Serif SC"),
