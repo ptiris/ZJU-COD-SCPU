@@ -457,7 +457,294 @@ Data_bias是我们需要位移的位数，以 bit 为单位.而 ALU_out 的末�
 
 = Scpu 仿真波形及解释
 
-== 
+我们所用到的仿真代码如下:
+```assemble
+    j start
+dummy:
+    nop
+    nop
+    nop
+    nop
+    nop
+    j   dummy
+start:
+    li x31,1
+    addi x1,x0,0x0AA    #x1 = 0xAA
+    ori x2,x1,0x005     #x2 = 0xAF
+    andi x3,x1,0x00F    #x3 = 0x0A
+    xori x4,x1,0x0F5    #x4 = 0x5F
+    srli x5,x1,4        #x5 = 0x0A
+    slti x6,x1,0x0AB    #x6 = 0xAA < 0xAB
+    slli x7,x1,4        #x7 = 0xAA0
+    sltiu x9,x1,0x7AB   #x9 = 0x0AA < 0x7AB
+    li x1,-1
+    srai x8,x1,4        #x8 = -1
+    li x10,0xAF
+    bne x10,x2,dummy
+    li x10,0x0A
+    bne x10,x3,dummy
+    li x10,0x5F
+    bne x10,x4,dummy
+    li x10,0x0A
+    bne x10,x5,dummy
+    li x10,1
+    bne x10,x6,dummy
+    li x10,0xAA0
+    bne x10,x7,dummy
+    li x10,1
+    bne x10,x9,dummy
+    li x10,-1
+    bne x10,x8,dummy
+    j   pass_1
+pass_1:
+    li x31,2
+    li x1,0x55
+    li x2,0xAA
+    add x3,x1,x2    
+    sub x4,x1,x2    
+    and x5,x1,x2
+    or x6,x1,x2
+    xor x7,x1,x2
+    slt x8,x1,x2
+    srl x9,x1,x2
+    sll x10,x1,x2
+    sra x11,x1,x2
+    sltu x12,x1,x2
+    li x13,0xFF
+    bne x13,x3,dummy
+    li x13,0xFFFFFFAB
+    bne x13,x4,dummy
+    li x13,0
+    bne x13,x5,dummy
+    li x13,0xFF
+    bne x13,x6,dummy
+    li x13,0xFF
+    bne x13,x7,dummy
+    li x13,1
+    bne x13,x8,dummy
+    li x13,0
+    bne x13,x9,dummy
+    li x13,0x00015400
+    bne x13,x10,dummy
+    li x13,0
+    bne x13,x11,dummy
+    li x13,1
+    bne x13,x12,dummy
+    j   pass_2
+pass_2:
+    li x31,3
+    nop
+    li    x18, 0x20        # base addr=00000020
+    li    x5, 0xF8000000
+    li    x4, 0x40000000
+    sw    x5, 0(x18)       # mem[0x20]=F8000000
+    sw    x4, 4(x18)       # mem[0x24]=40000000
+    lw    x27, 0(x18)      # x27=mem[0x20]=F8000000
+    xor   x27, x27, x5     # x27=00000000
+    sw    x6, 0(x18)       # mem[0x20]=C0000000
+    lw    x28, 0(x18)      # x28=mem[0x20]=C0000000
+    xor   x27, x6, x28     # x27=00000000
+    auipc x30, 0
+    bnez  x27, dummy
+    lui   x20, 0xA0000     # x20=A0000000
+    sw    x20, 8(x18)      # mem[0x28]=A0000000
+    lui   x27, 0xFEDCB     # x27=FEDCB000
+    srai  x27, x27, 12     # x27=FFFFEDCB
+    li    x28, 8
+    sll   x27, x27, x28    # x27=FFEDCB00
+    ori   x27, x27, 0xff   # x27=FFEDCBFF
+    lb    x29, 11(x18)     # x29=FFFFFFA0, little-endian, signed-ext
+    and   x27, x27, x29    # x27=FFEDCBA0
+    sw    x27, 8(x18)      # mem[0x28]=FFEDCBA0
+    lhu   x27, 8(x18)      # x27=0000CBA0
+    lui   x20, 0xFFFF0     # x20=FFFF0000
+    and   x20, x20, x27    # x20=00000000
+    auipc x30, 0
+    bnez  x20, dummy       # check unsigned-ext
+    li    x31, 6
+    lbu   x28, 10(x18)     # x28=000000ED
+    lbu   x29, 11(x18)     # x29=000000FF
+    slli  x29, x29, 8      # x29=0000FF00
+    or    x29, x29, x28    # x29=0000FFED
+    slli  x29, x29, 16
+    or    x29, x27, x29    # x29=FFEDCBA0
+    lw    x28, 8(x18)      # x28=FFEDCBA0
+    auipc x30, 0
+    bne   x28, x29, dummy
+    sw    x0, 0(x18)       # mem[0x20]=00000000
+    sh    x27, 0(x18)      # mem[0x20]=0000CBA0
+    li    x28, 0xD0
+    sb    x28, 2(x18)      # mem[0x20]=00D0CBA0
+    lw    x28, 0(x18)      # x28=00D0CBA0
+    li    x29, 0x00D0CBA0
+    auipc x30, 0
+    bne   x28, x29, dummy
+    lh    x27, 2(x18)      # x27=000000D0
+    li    x28, 0xD0
+    auipc x30, 0
+    bne   x27, x28, dummy
+    j   pass_3
+pass_3:
+    li x31,4
+    li x1,-1
+    auipc x30, 0
+    bge   x1, x0, dummy    # -1 >= 0 ?
+    bge   x8, x1, pass_4   # 1 >= -1 ?
+    auipc x30, 0
+    j     dummy
+pass_4:
+    li x31,5
+    auipc x30, 0
+    bgeu  x0, x1, dummy    # 0 >= FFFFFFFF ?
+    auipc x30, 0
+    bgeu  x8, x1, dummy
+    auipc x20, 0
+    jalr  x21, x0, pass_5 
+    auipc x30, 0
+    j     dummy
+pass_5:
+    addi  x20, x20, 8
+    auipc x30, 0
+    bne   x20, x21, dummy
+    li    x31, 0x666
+    j     dummy
+```
+仿真代码对应的ceo文件在附件中.
+
+#figure(
+  image("./assets/1.png", width: 100%),
+  caption:"Testbench Part I"
+)
+可以看到，这里我们依次执行了所有立即数运算的 I 型指令，同时对应的寄存器改变的结果也与我们预期的相符合.
+
+```assemble
+  addi x1,x0,0x0AA    #x1 = 0xAA
+  ori x2,x1,0x005     #x2 = 0xAF
+  andi x3,x1,0x00F    #x3 = 0x0A
+  xori x4,x1,0x0F5    #x4 = 0x5F
+  srli x5,x1,4        #x5 = 0x0A
+  slti x6,x1,0x0AB    #x6 = 0xAA < 0xAB
+  slli x7,x1,4        #x7 = 0xAA0
+  sltiu x9,x1,0x7AB   #x9 = 0x0AA < 0x7AB
+  li x1,-1
+  srai x8,x1,4        #x8 = -1
+```
+我们也采用了通过 x10 与所有的寄存器相比较来跳转的方法检验这些值是否正确
+```
+  li x10,0xAF
+  bne x10,x2,dummy
+  li x10,0x0A
+  bne x10,x3,dummy
+  li x10,0x5F
+  bne x10,x4,dummy
+  li x10,0x0A
+  bne x10,x5,dummy
+  li x10,1
+  bne x10,x6,dummy
+  li x10,0xAA0
+  bne x10,x7,dummy
+  li x10,1
+  bne x10,x9,dummy
+  li x10,-1
+  bne x10,x8,dummy
+  j   pass_1
+```
+
+可以看到仿真成功跳转到了 pass_1(0x90) 这代表所有寄存器的值与我们的预期相符合.这说明我们有关立即数运算的 datapath 工作正常
+
+#figure(
+  image("./assets/2.png", width: 100%), 
+  caption:"Testbench Part II"
+)
+可以看到，这里我们依次执行了所有寄存器运算的 R 型指令，同时对应的寄存器改变的结果也与我们预期的相符合.
+```assemble
+  li x31,2    
+  li x1,0x55
+  li x2,0xAA
+  add x3,x1,x2    #x3 = 0x55 + 0xAA = 0xFF
+  sub x4,x1,x2    #x4 = 0x55 - 0xAA = 0xFFFFFFAB
+  and x5,x1,x2    #x3 = 0x55 & 0xAA = 0x00
+  or x6,x1,x2     #x3 = 0x55 | 0xAA = 0xFF
+  xor x7,x1,x2    #x3 = 0x55 ^ 0xAA = 0xFF
+  slt x8,x1,x2    #x3 = 0x55 < 0xAA = 0x01
+  srl x9,x1,x2    #x3 = 0x55 >> 0xAA = 0x00
+  sll x10,x1,x2   #x3 = 0x55 << 0xAA = 0x00015400
+  sra x11,x1,x2   #x3 = 0x55 >> 0xAA = 0x00
+  sltu x12,x1,x2  #x3 = 0x55 < 0xAA = 0x01
+```
+我们也采用了通过 x13 与所有的寄存器相比较来跳转的方法检验这些值是否正确
+
+可以看到仿真成功跳转到了 pass_2(0x118) 这代表所有寄存器的值与我们的预期相符合.这说明我们有关寄存器运算的 datapath 工作正常
+
+#figure(
+  image("./assets/3.png", width: 100%), 
+  caption:"Testbench Part III"
+)
+
+
+这一部分是有关内存读写指令的仿真,与实验验收的模块大体相同.
+首先我们想 0x20与0x24 处存入了 F8000000 与 40000000 ，随即立即读取 0x20 处的值到 x27 中，并与 x28 进行简单的计算，反复向内存中读取与写入结果，都符合我们的预期，这说明我们对于一个字节的读写是正常的.
+
+在 PC = 0x178 处，``` lb x29, 11(x18) ```读取了11(x18) 处的一个byte. 我们先前向 8(x18)处写入了 A0000000 ，故 11(x18)处应该为 A0.但由于我们的 lb 是符号扩展的，所以实际写入的应该是 FFFFFFA0 ,可以看到 x29 的值符合我们的预期.
+
+```
+  sw    x27, 8(x18)      # mem[0x28]=FFEDCBA0
+  lhu   x27, 8(x18)      # x27=0000CBA0
+```
+同样的，我们在如上的指令中，向 0x28 写入了FFEDCBA0,尽管 8(x18)处的半个字节应该为 ``` CBA0 ``` 由于这里是无符号的指令，实际写入 x27 的值就为 0000CBA0.可以看到 x27 的值符合我们的预期.
+
+#figure(
+  image("./assets/4.png", width: 100%), 
+  caption:"Testbench Part IV"
+)
+
+接下来我们接着验证了各种情况下的读写功能，并通过 bne 跳转指令来检测.可以看到指令正常执行，没有回到 dummy，可见符合我们的预期
+
+可以看到我们的设计能够有效实现有符号与无符号的读和写相关的指令.
+
+
+#figure(
+  image("./assets/5.png", width: 100%), 
+  caption:"Testbench Part IV"
+)
+```
+  li x31,4
+  li x1,-1
+  auipc x30, 0
+  bge   x1, x0, dummy    # -1 >= 0 ?
+  bge   x8, x1, pass_4   # 1 >= -1 ?
+  auipc x30, 0
+  j     dummy
+```
+接下来的仿真主要测试有关 branch 跳转指令. 可以看到当我们在 PC = 200 处执行 auipc 时，x30 成功的变为了 0x200.
+
+接着是有符号情况下的跳转测试，在有符号的情况下，x1 中的 -1 小于 x0 中的 0 所以不跳转；而在下一条指令中，x8 中的 1 大于 x1 中的 -1.可以看到此时 BranchSel 信号为真，ALU_Control 信号择了 srl 模式，此时结果zero 分别为 1 与 0.这也说明了我们的 BranchSel 信号能够成功的“取反”，实现正确的跳转.
+
+```
+    li x31,5
+    auipc x30, 0
+    bgeu  x0, x1, dummy    # 0 >= FFFFFFFF ?
+    auipc x30, 0
+    bgeu  x8, x1, dummy
+    auipc x20, 0
+    jalr  x21, x0, pass_5 
+    auipc x30, 0
+    j     dummy
+pass_5:
+    addi  x20, x20, 8
+    auipc x30, 0
+    bne   x20, x21, dummy
+    li    x31, 0x666
+    j     dummy
+```
+
+接着是无符号情况下的跳转测试，在无符号的情况下，x0 中的 0 小于 x1 中的 -1(FFFFFFFF) 所以不跳转；而在下一条指令中，x8 中的 1 也小于 x1 中的 -1.可以看到此时 BranchSel 信号为真，ALU_Control 信号择了 srlu 模式，此时结果zero 分别为 1 与 1.这也说明了我们的 BranchSel 信号能够成功的“取反”，实现正确的跳转.
+
+我们通过 auipc 将当前 PC 存入了20中，
+然后我们通过 jalr 跳转到了pass_5 处，寄存器x_21 中存储了原本下一条指令的PC值(PC+4).可以看到，此时这两个寄存器相差刚好为两个指令的PC即8.
+
+所以我们在 pass_5 中看两者是否相差为8.可以看到 x20 与 x21 都储存了正确的值，我们将最终通过的 666 存入了 x31 中.代表我们的代码能够成功通过仿真测试.
+
 
 = Scpu 下板验证及结果
 
