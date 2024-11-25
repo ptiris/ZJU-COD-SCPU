@@ -41,6 +41,7 @@
   it
 }
 
+
 #set heading(
   numbering: "1.1.1",
 )
@@ -70,8 +71,9 @@
    size: 11pt
 )
 
-= Scpu 设计与实现
-== 实验要求
+= Lab4 1-3
+== Scpu 设计与实现
+=== 实验要求
 
 在本节实验中，我们需要实现以下指令
 #figure(
@@ -89,11 +91,11 @@
 )
 对于内存存储和读取的指令 ``` sb,sh,sw,lb,lh,lw ```我们保证读写的数据一定在内存的一个 byte 中，不会出现跨字的情况. 
 
-== Control Unit
+=== Control Unit
 
 Control Unit 负责从指令中译码并生成对应的若干控制信号.下面是我们实现的 SCPU 中各个控制信号的含义与实现.
 
-=== ImmSel
+==== ImmSel
 ImmSel 是一个3位的控制信号，主要从指令中译码出立即数生成的方式. ImmGen 立即数生成模块将会根据 ImmSel 的值从不同类型的指令中"提取"立即数.
 #figure(
   table(
@@ -126,7 +128,7 @@ ImmSel 是一个3位的控制信号，主要从指令中译码出立即数生成
   end
 ```
 
-=== ALUSrc_B
+==== ALUSrc_B
 ALUSrc_B 是一个 1 位的控制信号，主要用于选取 ALU 中操作数B的来源.
 - 当 ALUSrc_B = 1 时,操作数B为立即数.
 - 当 ALUSrc_B = 0 时,操作数B为寄存器堆中读取的值 ```Rs2_Data```.
@@ -142,7 +144,7 @@ ALUSrc_B 是一个 1 位的控制信号，主要用于选取 ALU 中操作数B�
   end
 ```
 
-=== MemtoReg
+==== MemtoReg
 MemtoReg 是一个 3 位的控制信号,但其并不仅限控制从 Mem 内存中返还回寄存器堆的写入,而是控制选择*所有的写入寄存器堆的值*.尽管在 Lab4-3 中我们仅需要 2 位就可以实现其所有的功能，但我们在 Lab4-4 中支持的 csr 相关的指令还需要向 RegsFiles 中写入CSR寄存器中的值，所以我们还需要额外添加一位信号(由于不是本节的内容，在这里不在赘述).
 
 #figure(
@@ -172,7 +174,7 @@ MemtoReg 是一个 3 位的控制信号,但其并不仅限控制从 Mem 内存�
   end
 ```
 
-=== Jump & JumpSel
+==== Jump & JumpSel
 
 Jump 是一个 1 位的信号，用于指示当前指令是否是无条件跳转.额外增加的信号 JumpSel 用于指示是否是 jalr 信号,而这个信号将影响 PC 跳转的选择. 
 
@@ -201,7 +203,7 @@ Jump 是一个 1 位的信号，用于指示当前指令是否是无条件跳转
   end
 ```
 
-=== Branch & BranchSel
+==== Branch & BranchSel
 Branch 与 BranchSel 是用于控制 Branch 跳转指令的信号.Branch用于指示当前指令是否是条件跳转,而 BranchSel 是一个“取反”的控制信号,主要用于在 ``` bne bte bgeu ``` 等情况下对ALU计算结果的"取反".
 
 #figure(
@@ -228,7 +230,7 @@ Branch 与 BranchSel 是用于控制 Branch 跳转指令的信号.Branch用于�
   end
 ```
 
-=== MemRW & MemSign
+==== MemRW & MemSign
 
 MemRW 是一个 4 位的内存写的使能信号.为了支持 ``` sb,sh,sw ``` 等内存的非完整 word 的写入,我们开启了 RAM 核的``` Byte Write Enable ```.MemRW 的每一位即对应每一个 word 中一个 byte 的写使能信号.对于任意一个地址 ``` addr ```，我们取``` addr ```的末两位为``` Save_Base```，则``` MemRW ```可以通过如下方式来产生:
 
@@ -250,7 +252,7 @@ MemRW 是一个 4 位的内存写的使能信号.为了支持 ``` sb,sh,sw ``` �
 
 而 MemSign 是一个一位的储存信号，主要用于指示当前的指令的符号，便于对需要存储的数据的处理.为真时则为无符号.
 
-=== RegWrite 
+==== RegWrite 
 
 RegWrite是寄存器堆的写使能信号.
 
@@ -273,7 +275,7 @@ RegWrite是寄存器堆的写使能信号.
   end
 ```
 
-=== ALU_op & ALU_Control
+==== ALU_op & ALU_Control
 
 ALU_op & ALU_Control 分别是两位和四位的有关 ALU 计算的控制信号.前者是从指令中简单译码，后者是再根据指令类型和Func3 与 Func7 进行更加具体的控制信号.最终输入到 ALU 中的控制信号有且仅有 ALU_Control.
 
@@ -349,11 +351,11 @@ ALU_op & ALU_Control 分别是两位和四位的有关 ALU 计算的控制信号
   end
 ```
 
-== Datapath
+=== Datapath
 
-如图是 DataPath 图(由于尺寸问题，DataPath图放在了附件中).由于篇幅原因，具体实现的代码放在了 @DataPath[Appendix] 附录里.下面是DataPath中实现的重要部分.
+如图是 DataPath 图(由于尺寸问题，DataPath图放在了附件中).由于篇幅原因，具体实现的代码放在了 @DataPath[Appendix] 附录里.下面是DataPath中实现的重要部分.我们重点分析跳转指令和内存读写指令的 DataPath.
 
-=== 跳转指令 DataPath
+==== 跳转指令 DataPath
 
 在本次实验中，涉及 PC 的修改的指令主要有 Branch 与 Jump 指令.其中： 
 - PC_4 是正常无跳转下下一条指令的地址，即PC+4
@@ -385,7 +387,7 @@ ALU_op & ALU_Control 分别是两位和四位的有关 ALU 计算的控制信号
   end
 ```
 
-=== 内存读写指令 DataPath
+==== 内存读写指令 DataPath
 
 在本次实验中，涉及 PC 的修改的指令主要有:``` lb lbu lh,lhu lw sb sh sw```. 由于我们对于写入写出的数据处理较为复杂，所以我们单独将 ``` Data_in ```的处理放入了``` Data_inGen ```这个模块中.在 DataPath 图中的 Data_outGen 实际上并不“单独”存在，只是为了对应 Data_inGen 而画出.
 
@@ -455,7 +457,7 @@ Data_bias是我们需要位移的位数，以 bit 为单位.而 ALU_out 的末�
 
 例如 我们通过 sb 指令向 11 处写入数据 0xAA,则 Rs2_data 中即为 0x000000AA ，此时的 Data_bias = (11[1:0])\*8 = 24 ，我们将 Rs2_data 左移 24 位即0xAA000000，此时我们需要写入的数据移到了最高位，对应了我们最高位的写使能信号为真，即向 地址11处写入了数据 AA.
 
-= Scpu 仿真波形及解释
+== Scpu 仿真波形及解释
 
 我们所用到的仿真代码如下:
 ```assemble
@@ -746,9 +748,9 @@ pass_5:
 所以我们在 pass_5 中看两者是否相差为8.可以看到 x20 与 x21 都储存了正确的值，我们将最终通过的 666 存入了 x31 中.代表我们的代码能够成功通过仿真测试.
 
 
-= Scpu 下板验证及结果
+== Scpu 下板验证及结果
 
-= 思考题
+== 思考题
 
 #question(title:"思考题")[
   在涉及到一个大立即数的读入时，我们经常能想到使用 lui & addi 来实现，比如下面这段代码就将 0x22223333 赋给了 t0:
@@ -771,6 +773,250 @@ lui t1, 0xDEADC
 ```
 这样就可以实现加载 DEADBEEF 到 t1 中
 
+= Lab4 4 Exception & Interruption
+
+== CSR 指令 DataPath 与中断模块设计
+
+=== CSR 寄存器
+在本次实验中，我们主要用到了如下的 CSR 寄存器.因为本次实验简化了 RISC-V 的标准，所以CSR 寄存器的含义可能存在偏差，我们规定本次实验中略有偏差的CSR寄存器如下:
+
+- *mstatus* Machine Status Register，存储当前控制状态。但由于本次实验仅设计 M 模式下的简单中断，所以我们仅用到了 mstatus 中的 MIE 来表示全局的中断使能.同时我们也不需要单独的 mie 寄存器来控制中断使能.即``` mstatus[3] = 1```时表示中断有效
+
+#figure(
+  image("assets/mstatus.png")
+)
+
+
+- *mcause* Machine Cause Register，存储引起这次 trap 的原因。本次实验仅要求实现了三种中断。
+#figure(
+  image("assets/mcause.png")
+)
+
+我们规定:
+#figure(
+  table(
+    columns: (auto,auto,auto),
+    stroke : none,
+    [Interrupt],[ExceptionCode],[Case],
+    table.hline(stroke:(0.5pt)),
+    [1],[0x00000004],[IO_BREAK IO 外设产生的硬件中断],
+    [1],[0x00000002],[ecall 指令软件中断],
+    [0],[0x00000001],[ill_legal_inst 非法指令],
+  )
+) 
+尽管在标准中规定：中断 / 异常码以值的方式存储，而不是对应位,但实验允许我们自由设计\\尊嘟假嘟
+
+- *mtval* Machine Trap Value Register,在本次实验中，我们使用这个寄存器储存中断发生时正在执行的指令.
+
+=== CSR 寄存器堆
+在本次的中断模块的设计中，我们新增了 CSRRegs 模块作为 CSR 寄存器堆.
+这一模块的实现逻辑与 RegsFiles 相似，但我们增加了``` mepc,mcause,mtval,mtvec,mstatus ``` 等寄存器的 bypass_in 与 bypass_out.这是因为当中断发生时我们可能同时需要修改多个CSR寄存器的值.csr_wsc_mode 控制信号用于控制 CSR 寄存器的赋值模式, 2'b01 时代表我们将只修改 bypass 的寄存器信号,2'b 10 与 2'b 11 表示只写入 addr 处的信号.
+
+```Verilog
+module CSRRegs(
+    input clk, rst,
+    input[11:0] raddr, waddr,       // 读、写 CSR 寄存器的地址
+    input[31:0] wdata,              // 写入 CSR 寄存器的数据
+    input csr_w,                    // 写使能
+    input[1:0] csr_wsc_mode,        // 写入 CSR 寄存器的模式
+    input expt_int,
+    input [31:0]mepc_bypasss_in,
+    input [31:0]mscause_bypass_in,
+    input [31:0]mtval_bypass_in,
+    input [31:0]mtvec_bypass_in,
+    input [31:0]mstatus_bypass_in,
+    
+    output [31:0] rdata,             // 读出 CSR 寄存器的数据
+    output [31:0]mepc_bypasss_out,
+    output [31:0]mscause_bypass_out,
+    output [31:0]mtval_bypass_out,
+    output [31:0]mtvec_bypass_out,
+    output [31:0]mstatus_bypass_out
+);
+    reg [31:0] res[4095:0];
+    integer i;
+    always @(posedge clk or posedge rst) begin
+        if(rst)begin
+            for (i = 0;i < 4096;i = i+1) 
+                res[i]<=0;
+        end
+        else begin
+            if(expt_int && (csr_wsc_mode == 2'b01))begin
+                res[12'h341] <= mepc_bypasss_in;
+                res[12'h342] <= mscause_bypass_in;
+                res[12'h343] <= mtval_bypass_in;
+                res[12'h300] <= mstatus_bypass_in;
+            end
+            else if(waddr && csr_w)
+                res[waddr] <= wdata;
+            else res[waddr] <= res[waddr];
+        end
+    end
+
+    assign  rdata = res[raddr];
+    assign  mepc_bypasss_out   =  res[833];
+    assign  mscause_bypass_out =  res[834];
+    assign  mtval_bypass_out   =  res[835];
+    assign  mtvec_bypass_out   =  res[773];
+    assign  mstatus_bypass_out =  res[768];
+endmodule
+```
+
+===  CSR 指令及其 DataPath
+我们需要在这次的实验中支持新增的6条CSR寄存器操作的有关指令.
+可以看到，这六条指令分别有三种“运算”和两种数据来源.三种运算分别为:赋值运算，或运算和操作数为1处置0的运算.
+
+其中，控制信号 ``` Csr_opctrl ```为 00,01,10 时分别代表赋值运算，或运算和操作数为1处置0运算. ``` Csr_immsel ``` 为 0,1 时分别代表操作数来自寄存器和立即数.但值得注意的是： "RS" 和 "RC" 两种指令在写入时，若 rs1 或 uimm 为0，则不执行写入操作.所以我们可以将```             |inst[19:15] ```作为 csr_w 信号的值.
+
+#figure(
+  table(
+    columns: (auto,auto,auto,auto),
+    [Inst_Type],[Csr_opctrl],[Csr_immsel],[Csr_w],
+    [csrrw],[00],[0],[1],
+    [csrrs],[01],[0],[```|rs1```],
+    [csrrc],[10],[0],[```|rs1```],
+    [csrrwi],[00],[1],[1],
+    [csrrsi],[01],[1],[```|uimm```],
+    [csrrci],[10],[1],[```|uimm```],
+  )
+)
+
+```Verilog
+  always @(*) begin
+    if(OPcode == CSR_type)begin
+      case (Fun3)
+        3'b000 :begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b0;                 mret = 1'b1;      end
+        3'b001 :begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b1;                 mret = 1'b0;      end
+        3'b010 :begin Csr_opctrl = 2'b01;Csr_immsel = 1'b0; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
+        3'b011 :begin Csr_opctrl = 2'b10;Csr_immsel = 1'b0; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
+        3'b101 :begin Csr_opctrl = 2'b00;Csr_immsel = 1'b1; Csr_w = 1'b1;                 mret = 1'b0;      end
+        3'b110 :begin Csr_opctrl = 2'b01;Csr_immsel = 1'b1; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
+        3'b111 :begin Csr_opctrl = 2'b10;Csr_immsel = 1'b1; Csr_w = |inst_in_ctrl[19:15]; mret = 1'b0;      end
+        default:begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b0;  mret = 1'b0;                     end
+      endcase
+    end
+    else begin Csr_opctrl = 2'b00;Csr_immsel = 1'b0; Csr_w = 1'b0; mret = 1'b0; end
+  end
+```
+
+为了简化控制信号的设计，我们单独为 CSR 这三种寄存器设计计算单元(好吧懒了).对于第三种运算，其等价于操作数取反再且上原数据即可.
+
+```Verilog
+  assign csr_waddr = inst_in[31:20];
+  assign csr_raddr = inst_in[31:20];
+  assign csr_imm = {{27{1'b0}},inst_in[19:15]};
+  assign csr_opnum = (csr_immsel)?csr_imm:Rs1_data;
+  assign csr_wdata = (csr_opctrl == 2'b00)?csr_opnum:
+  (csr_opctrl == 2'b01)?csr_opnum|csr_rdata:(~csr_opnum)&csr_rdata;
+```
+
+同时，对于写入寄存器的值，现在也有可能来自CSR寄存器，所以对于MemtoReg我们又额外新增了一位，来代表是否来自CSR寄存器.
+
+同样的，对于PC的修改，现在也有可能来自中断处理完毕后的 ``` mret```需要我们将PC更新为 mepc.<PCcode>
+
+```Verilog
+always @(*) begin
+  if(csr_wsc_mode == 2'b01)PC_next = mtvec_bypass_out[31:2]<<1;
+  else if(mret == 1'b1) PC_next = mepc_bypasss_out[31:0];
+  else if(((zero ^ BranchSel) && Branch) || Jump )PC_next = PC_BJ;
+  else PC_next = PC_4;
+end
+```
+
+=== 中断模块设计
+  我们新增了四个控制信号，```ecall,io_break,ill_inst```分别代表实验中所需要的三种中断是否发生. 而``` expt_int = ecall | io_break | ill_inst ```表示是否请求发生中断.但是否真的发生中断还需要由当前 mstatus 寄存器中的 mie 全局中断使能信号决定
+
+  ```Verilog
+      always @(*) begin
+        if(mstatus_bypass_out[3] && expt_int)begin
+            csr_wsc_mode = 2'b01;
+            mstatus_bypass_in = {mstatus_bypass_out[31:4],1'b0,mscause_bypass_out[2:0]};    //set trap enable
+            mscause_bypass_in = {ecall|IO_break,28'b0,IO_break,ecall,ill_inst};             //set cause for trap
+            mepc_bypasss_in   = PC_out;
+            mtval_bypass_in   = inst_in;
+        end 
+        else begin
+            csr_wsc_mode = 2'b00;
+        end
+    end
+  ```
+当中断请求发生时，我们将其与 mie 与起来，当中断有效时才会触发中断，并将 mie 设置为0；当已经发生中断时，mie为0，则不会再触发新的中断.此时我们将更改各个 Csr 寄存器的值，并将 csr_wsc_mode 设置为 1'b01.
+
+与此同时，在PC更新时，由于 csr_wsc_mode 为 1'b01 此时 PC 将会更新为 mtvec 需要跳转到的地址.
+
+== 中断处理程序设计
+
+我们根据 mcause 储存的 trap 的原因进行分类跳转处理.然后将这一类别储存进 x30 便于我们仿真和下板验证.然后我们在退出前恢复了各个 CSR 寄存器的状态. 
+
+值得注意的是，我们在进行处理之前需要保存通用寄存器.但这里为了便于仿真和下板验证，我们没有保存或恢复 x30 的值.
+
+```assemble
+trap:
+    addi x2, x2, 128        # 为32个寄存器分配栈空间（每个寄存器4字节，总共128字节）
+    sw x1,  124(x2)             # 保存 x1 (返回地址寄存器)
+    ...
+    sw x31, 4(x2)               # 保存 x31 (临时寄存器)
+
+                                
+    csrrsi x5,834,0             # x5 = mscause
+    csrrsi x6,835,0             # x6 = mtval
+    csrrsi x7,833,0             # x7 = mepc
+    csrrsi x10,768,0            # x10 = mstatus
+    
+    andi x8, x5, 4              # mscause & 100
+    li x9,4
+    beq x8,x9,io_int
+    andi x8, x5, 2
+    li x9,2
+    beq x8,x9,ecall_int
+    li x9,1
+    beq x8,x9,ill_inst_exc
+    j end_trap
+    
+    
+io_int:
+    addi x7,x7,0
+    ori x10,x10,8             # x10 |= 1000 mie = 1
+    csrrw x0,768,x10          # mstatus = x10
+    csrrw x0,833,x7           # mepc = x7 = mepc
+    csrrw x0,835,x6           # mtval= x6 = mtval
+    csrrci x0,834,x4          # mscause -= 100
+    li x30,1
+    j end_trap
+ecall_int:
+    addi x7,x7,4
+    ori x10,x10,8             # x10 |= 1000 mie = 1
+    csrrw x0,768,x10          # mstatus = x10
+    csrrw x0,833,x7           # mepc = x7 = mepc +4
+    csrrw x0,835,x6           # mtval= x6 = mtval
+    csrrci x0,834,x2          # mscause -= 010
+    li x30,2
+    j end_trap
+    
+ill_inst_exc:
+    addi x7,x7,4
+    ori x10,x10,8             # x10 |= 1000 mie = 1
+    csrrw x0,768,x10          # mstatus = x10
+    csrrw x0,833,x7           # mepc = x7 = mepc +4
+    csrrw x0,835,x6           # mtval= x6 = mtval
+    csrrci x0,834,x1          # mscause -= 001
+    li x30,3
+    j end_trap
+    
+end_trap:
+    # 恢复寄存器
+    lw x31, 4(x2)               # 恢复 x31 (临时寄存器)
+    ...                  
+    lw x1,  124(x2)             
+    addi x2, x2, -128           
+    
+    mret  # 30200073
+```
+
+== 中断仿真波形与解释
+=== CSR 有关指令的仿真
+=== 中断的仿真
+== 中断下板验证及结果
 = Appendix
 
 == DataPath <DataPath> 
@@ -881,6 +1127,7 @@ endmodule
 
 == SCPU_Ctrl <SCPU_Ctrl>
 
+以下是关于 Lab 4-3 的 DataPath 设计
 ```Verilog
 module SCPU_ctrl(      
   input      [31:0] inst_in_ctrl,                    //Func7[1]
