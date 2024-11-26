@@ -56,8 +56,8 @@ pass_3:
     li x2, 13               #x2 = 45(01101) 
     li x4, 63
     li x9, 31
-    csrrwi x0, 768, x31      #mstatus = 63(11111)
-    csrrci x3, 768, x18      # 10100
+    csrrwi x0, 768, x31      #mstatus = 31(11111)
+    csrrci x3, 768, x18      # 10010
     auipc x30, 0
     bne x3, x9, dummy
     csrrsi x5, 768, x0       #x5 = mstatus
