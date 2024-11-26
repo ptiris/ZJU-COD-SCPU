@@ -1014,8 +1014,126 @@ end_trap:
 ```
 
 == 中断仿真波形与解释
-=== CSR 有关指令的仿真
+在这次的实验中，我们将仿真分为两部分进行，第一部分为有关 CSR 指令的仿真，第二部分为三种中断下的仿真。
+=== CSR 有关指令的仿真 
+
+CSR 指令有关的仿真代码如下:
+
+```assemble
+j   start
+dummy:
+    nop
+    nop
+    nop
+    nop
+    nop
+    j   dummy
+start:                   #testbench on csrrw and csrrs
+    li x31, 1
+    li x1, 0xBEEF        #x1 = 0xBEEF
+    auipc x30, 0 
+    csrrw x2, 833, x1    #x2 = mepc, mepc = x1
+    csrrw x2, 833, x0    #x2 = mepc, mepc = x0
+    auipc x30, 0 
+    bne x2, x1, dummy    #x2 == x1?
+    li x3, 5             #x3 = 5
+    csrrw x0, 305, x3    #mvec = x3
+    li x4, 10            #x4 = 10
+    csrrs x5, 305, x4    #x5 = mvec, mvec |= x4
+    csrrw x6, 305, x0    #x6 = mvec, mvec = 0
+    or x7, x4, x3        #x7 = x4|x3
+    auipc x30, 0 
+    bne x7,x6,dummy
+    j   pass_1
+pass_1:                   #test on csrrc
+    li x31, 2
+    li x2, 15
+    csrrw x0, 835, x2     #mtval = 15
+    li x3, 6              #x3 = 6
+    li x4, 9
+    csrrc x0, 835, x3    
+    csrrw x5, 835, x0     #x5 = mtval, mtval = 0
+    auipc x30, 0
+    bne x5, x4, dummy
+    j   pass_2
+pass_2:
+    li x31, 3
+    li x3, 32
+    li x4, 20
+    csrrwi x0, 834, x20     #mcause = 20 (10100)
+    csrrw x2, 834, x3       #x2 = mcause, mcause = 32 (100000)
+    auipc x30, 0
+    bne x2, x4, dummy     
+    csrrsi x5, 834, x0      #x5 = mcause
+    auipc x30, 0
+    bne x3, x5, dummy       #
+    csrrsi x3, 834, x10     #x3 = mcause, mcause = 0x2A
+    csrrw x4, 834, x0       #x4 = mcause, mcause = 0
+    li x7, 42
+    auipc x30, 0
+    bne x7, x4, dummy
+    j   pass_3
+pass_3:
+    li x31, 4
+    li x2, 13               #x2 = 45(01101) 
+    li x4, 63
+    li x9, 31
+    csrrwi x0, 768, x31      #mstatus = 63(11111)
+    csrrci x3, 768, x18      # 10100
+    auipc x30, 0
+    bne x3, x9, dummy
+    csrrsi x5, 768, x0       #x5 = mstatus
+    auipc x30, 0
+    bne x2, x5, dummy
+    j   pass_4
+
+pass_4:
+    li x31, 666
+    j   dummy
+```
+
+我们可以得到如下的仿真结果:
+
+#figure(
+  image("assets/6.png") 
+)
+
+在第一部分我们主要测试的指令为 csrrw 和 csrrs 两个指令.
+
+我们首先将 mepc 赋值给 x2,将 x1 中的 BEEF 赋值给 x1;可以看到此时 mepc_bypasss_out 的值变为了 BEEF,并且 x2 的值为零,这说明指令正常执行，且csr寄存器中的初始值成功初始化为0.
+
+同样的我们再次执行 csrrw x2,mepc,x0 将 mepc 赋值为 0，此时我们通过 bne 来判断 x2 中储存的原始值是否是 x1 来判断失败跳转。可以看到指令正常执行，没有发生回到dummy的情况。
+
+接下来我们先向 mtvec 中通过 csrrw 存储 x3 的值，在通过 csrrs 将 mtvec 中的值或上 x4,并通过ben 判断``` x4|x3 ```是否等于 mtvec 中的值来判断失败跳转。可以看到指令正常执行，mtvec_bypass_out  显示其值变为了 0x5|0xA = 0xF，没有发生回到dummy的情况。
+
+
+#figure(
+  image("assets/7.png") 
+)
+在第二部分我们主要测试的指令为 csrrc 指令.
+
+我们先向 mtval 中通过 csrrw 存储 15 的值,即 0xF，再通过 csrrc 将 mtval 中的值在 x3 中为 1 的位置置零，此时 x3 = 4'b0110，所以操作完成后的结果应该为 4'b1001 = 9，可以看到指令正常执行，mtval_bypass_out  显示其值变为了 9 ，没有发生回到dummy的情况。
+
+#figure(
+  image("assets/8.png") 
+)
+
+在第三部分中我们主要测试的指令为 csrrwi 和 csrrsi指令.
+
+我们先向 mcause 中通过 csrrwi 存储 20 的值,再通过 csrrw 将 mcause 中的值储存至 x2 ，此时 x2 = 20，可以看到指令正常执行，mtcause_bypass_out  显示其值变为了 20  ，没有发生回到dummy的情况。
+
+然后我们测试 csrrsi 的特殊情况：uimm 等于零。可以看到此时 mcause 保持了原始值 32 没有发生变化，同时写使能信号为零，没有副作用，符合指令的标准。紧接着 csrrsi 将0xA或入了 mcause 中，此时mcause的值即为 0x2A 符合我们的预期。
+
+#figure(
+  image("assets/9.png") 
+)
+
+在最后一步中我们主要测试了 csrrci 指令,通过 csrrwi 现将 31 存储到 mstatus 中，然后通过 csrrci 指令将 18 中为 1的 位在 31 中置零，此时我们得到 5'b01101 即 0xd ，可以看到我们的 mstatus_bypass_out 变化为了正确的值符合我们的预期。
+
+最终 x31 中的值也变为了 666 表示我们通过了仿真.
 === 中断的仿真
+
+
 == 中断下板验证及结果
 = Appendix
 
