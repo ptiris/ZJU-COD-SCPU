@@ -13,16 +13,21 @@ start:
     add x6, x5, x1
     add x7, x6, x6
     li x3, 4
-    li x4, 0x44
+    li x4, 0x5c
     csrrw x0, 773, x4
-    csrrw x0, 768,
+    csrrwi x0,768, x8
     ecall
+    li x8,2
+    bne x8,x30,dummy
+    ill_inst #!
+    li x8,3
+    bne x8,x30,dummy
+    li x31,666
     j dummy
 
 trap:
-    addi x2, x2, 128           # 为32个寄存器分配栈空间（每个寄存器4字节，总共128字节）
+    addi x2, x2, 128            # 为32个寄存器分配栈空间（每个寄存器4字节，总共128字节）
     sw x1,  124(x2)             # 保存 x1 (返回地址寄存器)
-    sw x2,  120(x2)             # 保存 x2 (栈指针)
     sw x3,  116(x2)             # 保存 x3 (全局指针)
     sw x4,  112(x2)             # 保存 x4 (线程指针)
     sw x5,  108(x2)             # 保存 x5 (临时寄存器)
@@ -50,7 +55,6 @@ trap:
     sw x27, 20(x2)              # 保存 x27 (保存寄存器)
     sw x28, 16(x2)              # 保存 x28 (临时寄存器)
     sw x29, 12(x2)              # 保存 x29 (临时寄存器)
-    sw x30, 8(x2)               # 保存 x30 (临时寄存器)
     sw x31, 4(x2)               # 保存 x31 (临时寄存器)
                                 # mepc    =  res[12'h341];
                                 # mscause =  res[12'h342];
@@ -58,10 +62,10 @@ trap:
                                 # mtvec   =  res[12'h305];
                                 # mstatus =  res[12'h300];
                                 
-    csrrwi x5,834,0             # x5 = mscause
-    csrrwi x6,835,0             # x6 = mtval
-    csrrwi x7,833,0             # x7 = mepc
-    csrrwi x10,768,0            # x10 = mstatus
+    csrrwi x5,834,x0             # x5 = mscause
+    csrrwi x6,835,x0             # x6 = mtval
+    csrrwi x7,833,x0             # x7 = mepc
+    csrrwi x10,768,x0            # x10 = mstatus
     
     andi x8, x5, 4              # mscause & 100
     li x9,4
@@ -69,6 +73,7 @@ trap:
     andi x8, x5, 2
     li x9,2
     beq x8,x9,ecall_int
+    andi x8, x5, 1
     li x9,1
     beq x8,x9,ill_inst_exc
     j end_trap
@@ -76,16 +81,16 @@ trap:
     
 io_int:
     addi x7,x7,0
-    ori x10,x10,4             # x10 |= 100
+    ori x10,x10,8             # x10 |= 100
     csrrw x0,768,x10          # mstatus = x10
     csrrw x0,833,x7           # mepc = x7 = mepc
     csrrw x0,835,x6           # mtval= x6 = mtval
-    csrrci x0,834,x2          # mscause -= 010
+    csrrci x0,834,x4          # mscause -= 010
     li x30,1
     j end_trap
 ecall_int:
     addi x7,x7,4
-    ori x10,x10,4             # x10 |= 100
+    ori x10,x10,8             # x10 |= 100
     csrrw x0,768,x10          # mstatus = x10
     csrrw x0,833,x7           # mepc = x7 = mepc +4
     csrrw x0,835,x6           # mtval= x6 = mtval
@@ -95,18 +100,17 @@ ecall_int:
     
 ill_inst_exc:
     addi x7,x7,4
-    ori x10,x10,4             # x10 |= 100
+    ori x10,x10,8             # x10 |= 100
     csrrw x0,768,x10          # mstatus = x10
     csrrw x0,833,x7           # mepc = x7 = mepc +4
     csrrw x0,835,x6           # mtval= x6 = mtval
-    csrrci x0,834,x2          # mscause -= 010
+    csrrci x0,834,x1          # mscause -= 010
     li x30,3
     j end_trap
     
 end_trap:
     # 恢复寄存器
     lw x31, 4(x2)               # 恢复 x31 (临时寄存器)
-    lw x30, 8(x2)               # 恢复 x30 (临时寄存器)
     lw x29, 12(x2)              # 恢复 x29 (临时寄存器)
     lw x28, 16(x2)              # 恢复 x28 (临时寄存器)
     lw x27, 20(x2)              # 恢复 x27 (保存寄存器)
@@ -134,7 +138,6 @@ end_trap:
     lw x5,  108(x2)             # 恢复 x5 (临时寄存器)
     lw x4,  112(x2)            
     lw x3,  116(x2)             
-    lw x2,  120(x2)            
     lw x1,  124(x2)             
     addi x2, x2, -128           
     
